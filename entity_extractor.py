@@ -26,6 +26,8 @@ elif llm_api == 'openai':
     from completion_openai import create_chat_completion
 elif llm_api == 'bard':
     from completion_bard import create_chat_completion
+elif llm_api == 'anthropic':
+    from completion_anthropic import create_chat_completion
 else:
     raise NotImplemented(f'Please set the api argument to one of (llama, openai, bard). Got {llm_api}.')
 
