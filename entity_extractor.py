@@ -5,6 +5,7 @@ import json
 import time
 import re
 import argparse
+import pandas as pd
 
 DEFAULT_MODEL = 'openai'
 
@@ -65,7 +66,7 @@ def display_color(line, entities, time_taken):
             match, rating, *method_info = value
             print(f'{key} {COLOR_RED}No match{COLOR_RESET} {method_info}')
             continue
-        
+
         match, rating, *method_info = value
         color = {5: COLOR_GREEN, 4: COLOR_YELLOW}.get(rating, COLOR_RED)
 
@@ -266,6 +267,23 @@ def clean_string(s):
     s = re.sub(' +', ' ', s)
     return s
 
+def save_predictions(predictions : list[dict], filename : str):
+  pred_df = pd.DataFrame() 
+  for idx, d in enumerate(predictions): 
+    subset = pd.DataFrame()
+    note_id = [] 
+    concept_id = []
+    for key in d.keys():
+      note_id.append(idx) 
+      try:
+        concept_id.append(d[key][0]["code"])
+      except:
+        concept_id.append(-1)
+    subset["note_id"] = note_id
+    subset["concept_id"] = concept_id
+    pred_df = pd.concat([pred_df, subset], ignore_index=True)
+  pred_df.to_csv(filename, index=False) 
+
 def main():
     # Initialise the LLM we are using (if required)
     # Read the test cases (hide blank lines)
@@ -275,7 +293,7 @@ def main():
             stripped_lines = map(str.rstrip, file.readlines())
         # skip newlines and comments/titles    
         lines = [line for line in stripped_lines if line and not line.startswith('#')]
-        
+
         start_time_all_cases = time.time()
         entities_per_line = []
         language = identify_language(lines)
@@ -288,10 +306,12 @@ def main():
             entities = identify(text)  # identify entities
             entities_per_line.append(entities)
             display_color(text, entities, time.time() - start_time)
-
+            # break 
+        # print(entities_per_line)
         print(COLOR_BLUE, time.time() - start_time_all_cases, 's', COLOR_RESET, sep='')
+        save_predictions(entities_per_line, "test.csv")
     else:
         raise ValueError('Please provide a path to a set of free text clinical sentences to encode with SNOMED CT.')
-    
+
 if __name__ == "__main__":
     main()
