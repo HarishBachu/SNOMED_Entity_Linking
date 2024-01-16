@@ -5,6 +5,7 @@ import json
 import time
 import re
 import argparse
+import numpy as np
 import pandas as pd
 
 DEFAULT_MODEL = 'openai'
@@ -14,6 +15,7 @@ arg_parser = argparse.ArgumentParser(prog='LLM CT Entity Extractor', description
 arg_parser.add_argument('-a', '--api', default=DEFAULT_MODEL, help='the API to use (options: llama, openai, bard)')
 arg_parser.add_argument('--model', help='the model to run, dependent upon API choice. Path to model in Llama2.0, model name in OpenAI, or model name in BARD.')
 arg_parser.add_argument('--sentences', help='path to a set of free text clinical sentences to encode with SNOMED CT.')
+arg_parser.add_argument('--csv', help='path to a csv file containing free text clinical sentences to encode with SNOMED CT.')
 _args = arg_parser.parse_args()
 llm_api = _args.api.lower()
 
@@ -310,6 +312,34 @@ def main():
         # print(entities_per_line)
         print(COLOR_BLUE, time.time() - start_time_all_cases, 's', COLOR_RESET, sep='')
         save_predictions(entities_per_line, "test.csv")
+
+    elif _args.csv: 
+      file = pd.read_csv(_args.csv)
+      lines = file["text"].tolist()
+      # lines = list(map(clean_string, lines))
+      note_ids = file["note_id"].tolist()
+      re_mapped = np.arange(len(note_ids)).tolist() 
+      custom_mapping = pd.DataFrame({"note_id" : note_ids, "re_mapped" : re_mapped})
+
+      start_time_all_cases = time.time()
+      entities_per_line = []
+      language = identify_language(lines)
+
+      # Iterate over each line in the test cases
+      for line in lines:
+          print(COLOR_BLUE, line, COLOR_RESET, sep='')
+          start_time = time.time()
+          text = as_english(line, language)  # translate text in other languages to english
+          entities = identify(text)  # identify entities
+          entities_per_line.append(entities)
+          display_color(text, entities, time.time() - start_time)
+          # break 
+      # print(entities_per_line)
+      print(COLOR_BLUE, time.time() - start_time_all_cases, 's', COLOR_RESET, sep='')
+      save_predictions(entities_per_line, "test.csv")
+      custom_mapping.to_csv("custom_mapping.csv", index=False)
+      
+      
     else:
         raise ValueError('Please provide a path to a set of free text clinical sentences to encode with SNOMED CT.')
 

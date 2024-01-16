@@ -29,8 +29,16 @@ arg_parser = argparse.ArgumentParser(prog='Model Evaluation', description='Evalu
 arg_parser.add_argument('-g', '--ground_truth', default=DEFAULT_FILE, help='Ground Truth data as csv')
 arg_parser.add_argument('-p', '--predicted', default=DEFAULT_FILE, help="Model Predictions as csv")
 
+custom_mapping = pd.read_csv("custom_mapping.csv")
+
 _args = arg_parser.parse_args()
 df_true = pd.read_csv(_args.ground_truth)
 df_pred = pd.read_csv(_args.predicted)
+
+df_true = pd.merge(df_true, custom_mapping, on="note_id", how="left")
+df_true["note_id"] = df_true["re_mapped"]
+df_true = df_true.drop(columns=["re_mapped"])
+
+df_true = df_true[df_true["note_id"].isin(df_pred["note_id"].unique())]
 
 print(macro_iou(df_true, df_pred))
