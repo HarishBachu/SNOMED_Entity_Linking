@@ -4,6 +4,7 @@ from prompts import *
 import json
 import time
 import re
+import string
 import argparse
 import numpy as np
 import pandas as pd
@@ -269,6 +270,18 @@ def clean_string(s):
     s = re.sub(' +', ' ', s)
     return s
 
+def clean_paragraph(paragraph):
+    # Remove bullet points
+    paragraph = re.sub(r'\s*[\u2022\u2023\u25E6\u2043\u2219]\s+', ' ', paragraph)
+
+    # Remove other unnecessary punctuations
+    paragraph = paragraph.translate(str.maketrans('', '', string.punctuation.replace(".", "").replace(",", "")))
+
+    # Remove extra whitespaces
+    paragraph = ' '.join(paragraph.split())
+
+    return paragraph
+  
 def save_predictions(predictions : list[dict], filename : str):
   pred_df = pd.DataFrame() 
   for idx, d in enumerate(predictions): 
@@ -316,7 +329,7 @@ def main():
     elif _args.csv: 
       file = pd.read_csv(_args.csv)
       lines = file["text"].tolist()
-      # lines = list(map(clean_string, lines))
+      lines = list(map(clean_paragraph, lines))
       note_ids = file["note_id"].tolist()
       re_mapped = np.arange(len(note_ids)).tolist() 
       custom_mapping = pd.DataFrame({"note_id" : note_ids, "re_mapped" : re_mapped})
